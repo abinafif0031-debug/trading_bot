@@ -651,7 +651,10 @@ async def start(update,ctx):
 
 
 async def btn(update,ctx):
-    q=update.callback_query; await q.answer(); cid=q.message.chat_id
+    q=update.callback_query
+    # تأكيد الاستلام الفوري وتنبيه المستخدم بنص خفيف أعلى الشاشة
+    await q.answer("جاري المعالجة...") 
+    cid=q.message.chat_id
 
     if q.data=="sub":
         if cid not in ALERT_CHAT_IDS: ALERT_CHAT_IDS.append(cid)
@@ -661,13 +664,16 @@ async def btn(update,ctx):
             f"📊 15m + 1h + 1D | {MIN_SCORE}+ نقطة | {MIN_CONFIRMS}+ تأكيد\n"
             f"🎯 TP1/TP2/TP3 + SL + R:R\n\nسيصلك تنبيه عند الفرصة 🚀",
             parse_mode="Markdown")
+            
     elif q.data=="unsub":
         if cid in ALERT_CHAT_IDS: ALERT_CHAT_IDS.remove(cid)
         await q.edit_message_text("🔕 تم الإيقاف.")
+        
     elif q.data=="fg":
         fg=await get_fg(); v=fg["value"]; lb=fg["label"]
         adv="🟢 ممتاز للشراء" if v<=25 else "🟡 جيد" if v<=40 else "🔴 تحذر" if v>=75 else "⚪ محايد"
         await q.edit_message_text(f"😱 *Fear & Greed*\n\n{v:.0f}/100 — {lb}\n{adv}",parse_mode="Markdown")
+        
     elif q.data=="status":
         fg=await get_fg(); st=stats
         await q.edit_message_text(
@@ -679,6 +685,7 @@ async def btn(update,ctx):
             f"أُرسل:{st.get('sent',0)} رُفض:{st.get('rejected',0)} "
             f"وقت:{st.get('time','—')}",
             parse_mode="Markdown")
+            
     elif q.data=="cfg":
         await q.edit_message_text(
             f"⚙️ *الإعدادات*\n\n"
@@ -692,19 +699,23 @@ async def btn(update,ctx):
             f"CNN Fear&Greed ✅\n\n"
             f"*المؤشرات:* RSI MACD Stoch BB WR CCI ADX VWAP Momentum Breakout Patterns",
             parse_mode="Markdown")
+            
     elif q.data=="scan":
-        await q.edit_message_text("⏳ فحص سريع...")
+        await q.edit_message_text("⏳ جاري الفحص السريع لأعلى 10 أسهم سيولة...")
         fg=await get_fg(); found=[]
-        for sym in WATCHLIST[:40]:
-            res=await scan_symbol(sym,fg)
-            if res:
-                t15,sc=res
-                em="📈"
-                found.append((sc,f"📈 *{sym}* {sc}/100 | ${t15['price']} RSI:{t15.get('rsi')} Vol:{t15.get('vr')}x"))
-        found.sort(key=lambda x:-x[0])
-        msg=("🔍 *أفضل الفرص:*\n\n"+"\n".join(x[1] for x in found[:8])+"\n\n_أرسل رمز للتحليل الكامل_") if found else "🔍 لا توجد فرص الآن."
-        await q.edit_message_text(msg,parse_mode="Markdown")
-
+        
+        # تم تقليص العدد لـ 10 وفحصهم بالتوازي (Async) لمنع تعليق الزر وحظر الـ API
+        batch = WATCHLIST[:10]
+        results = await asyncio.gather(*[scan_symbol(sym, fg) for sym in batch], return_exceptions=True)
+        
+        for sym, res in zip(batch, results):
+            if res and not isinstance(res, Exception):
+                t15, sc = res
+                found.append((sc, f"📈 *{sym}* {sc}/100 | ${t15['price']} RSI:{t15.get('rsi')} Vol:{t15.get('vr')}x"))
+                
+        found.sort(key=lambda x: -x[0])
+        msg = ("🔍 *أفضل الفرص الحالية (Top 10):*\n\n" + "\n".join(x[1] for x in found[:5]) + "\n\n_أرسل رمز السهم للتحليل الكامل_") if found else "🔍 لا توجد فرص محققة للشروط في هذه اللحظة."
+        await q.edit_message_text(msg, parse_mode="Markdown")
 
 async def analyze_cmd(update,ctx):
     sym=update.message.text.strip().upper()
