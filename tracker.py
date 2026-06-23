@@ -6,7 +6,8 @@ Auto-tracks all signals, updates TP/SL hits, calculates performance
 import sqlite3
 import logging
 from datetime import datetime, timedelta
-from typing import List, dict
+from typing import List, Dict
+
 
 logger = logging.getLogger(__name__)
 
