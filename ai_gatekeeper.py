@@ -6,7 +6,7 @@ Analyzes the signal context and gives a final verdict with brief comment
 import logging
 import json
 import aiohttp
-from typing import tuple
+from typing import Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,8 @@ class AIGatekeeper:
         self.api_url = "https://api.anthropic.com/v1/messages"
         self.model   = "claude-haiku-4-5"
 
-    async def approve(self, signal: dict) -> tuple:
+    async def approve(self, signal: dict) -> Tuple[bool, str]:
+
         """
         Returns (approved: bool, comment: str)
         Quick AI judgment on signal quality.
