@@ -18,8 +18,8 @@ class Config:
     ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_KEY", "")
 
     # ─── Scoring ─────────────────────────────────────────────────────────────
-    MIN_SCORE = int(os.getenv("MIN_SCORE", "62"))       # Lowered for more signals
-    MIN_CONFIRMATIONS = int(os.getenv("MIN_CONFIRMATIONS", "4"))  # Minimum confirmations
+    MIN_SCORE = int(os.getenv("MIN_SCORE", "70"))       # Higher = fewer but better signals
+    MIN_CONFIRMATIONS = int(os.getenv("MIN_CONFIRMATIONS", "5"))  # Minimum confirmations
 
     # ─── Trade Parameters ────────────────────────────────────────────────────
     TP1_PCT = float(os.getenv("TP1_PCT", "2.0"))        # 2%
