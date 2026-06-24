@@ -174,17 +174,20 @@ class TradingBot:
         
         try:
             signal = await self.analyzer.analyze_single(text)
-            if signal:
+            # Only track & show full signal if score is high enough
+            if signal and not signal.get('no_signal') and signal['score'] >= self.config.MIN_SCORE:
                 response = self._format_signal(signal, on_demand=True)
-                # Track this as a monitored position
-                self.tracker.add_signal(signal)
-            else:
+                self.tracker.add_signal(signal)  # Track only valid signals
+            elif signal:
+                score = signal.get('score', 0)
+                direction = '🟢 Leaning Long' if score > 50 else '🔴 Leaning Short'
                 response = (
-                    f"📊 *{text}* — No clear setup\n\n"
-                    f"• Score: `{signal['score'] if signal else 'N/A'}`\n"
-                    "• Conditions not aligned for entry now\n"
-                    "• Will alert if setup forms ✅"
+                    f"📊 *{text}* — No clear entry\n"
+                    f"Score: `{score}/100` | {direction}\n"
+                    f"Conditions not strong enough for entry."
                 )
+            else:
+                response = f"❌ Could not fetch data for `{text}`"
             await msg.edit_text(response, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             logger.error(f"Analysis error for {text}: {e}")
@@ -261,7 +264,8 @@ class TradingBot:
             market_status = self._get_market_status(now)
             
             # Skip if market fully closed and not forced
-            if "Closed" in market_status and "Weekend" in market_status and not force:
+            if "Closed" in market_status and not force:
+                logger.info("Market closed — skipping scan")
                 return
             
             logger.info(f"🔍 Scanning | {market_status}")
@@ -286,7 +290,10 @@ class TradingBot:
             
             # Send signals to all chats
             for signal in signals:
-                self.tracker.add_signal(signal)
+                trade_id = self.tracker.add_signal(signal)
+                if trade_id == -1:
+                    logger.info(f"Already tracking — skipping broadcast")
+                    continue
                 msg = self._format_signal(signal)
                 await self._broadcast(msg)
                 await asyncio.sleep(1)  # Rate limit
@@ -335,10 +342,15 @@ class TradingBot:
                         
                 elif current_price <= sl:
                     self.tracker.close_position(pos['id'], current_price, 'SL')
+                    # 4h cooldown after SL — no re-entry on same symbol
+                    orig = self.config.COOLDOWN_SEC
+                    self.config.COOLDOWN_SEC = 14400
+                    self.config.set_cooldown(symbol)
+                    self.config.COOLDOWN_SEC = orig
                     msg = (
                         f"🛑 *{symbol}* — Stop Loss Hit\n"
                         f"Entry: `${entry:.2f}` → `${current_price:.2f}`\n"
-                        f"📉 Loss: `{pnl:.2f}%` | Risk managed ✓"
+                        f"📉 Loss: `{pnl:.2f}%` | No re-entry for 4h ⏳"
                     )
                     await self._broadcast(msg)
                     
