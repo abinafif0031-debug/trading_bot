@@ -44,22 +44,22 @@ class Config:
 
     # ─── Default Watchlist ───────────────────────────────────────────────────
     DEFAULT_WATCHLIST = [
-        # Mega caps
-        "AAPL", "MSFT", "NVDA", "TSLA", "META", "GOOGL", "AMZN", "AMD",
-        # High momentum
-        "PLTR", "SOFI", "MARA", "RIOT", "COIN", "HOOD", "RBLX", "SNAP",
-        "UBER", "LYFT", "UPST", "AFRM", "OPEN", "DKNG",
-        # Tech/Growth
-        "SMCI", "IONQ", "QBTS", "RGTI", "ARQQ", "QUBT", "SOUN",
-        "BBAI", "GFAI", "AI", "GENI", "CLOV", "JOBY",
-        # ETFs for momentum
-        "SPY", "QQQ", "SOXS", "SOXL", "TQQQ", "SQQQ",
-        # Energy/Commodities
-        "XOM", "CVX", "OXY", "MRO", "HAL",
-        # Financials
-        "BAC", "JPM", "GS", "C", "WFC",
-        # Biotech (high volatility = opportunities)
-        "MRNA", "BNTX", "GILD", "BIIB",
+        "AAPL", "NVDA", "TSLA", "AMD", "AVGO", "QCOM", "MU", "ORCL", "ADBE", "CRM",
+        "NOW", "PANW", "CRWD", "SNOW", "ZS", "OKTA", "AMAT", "LRCX", "KLAC", "NXPI",
+        "ON", "GFS", "MPWR", "TER", "TXN", "SMCI", "ARM", "ASML", "ISRG", "SYK",
+        "ABT", "JNJ", "TMO", "DHR", "BSX", "MDT", "ZTS", "PG", "HD", "SBUX",
+        "NKE", "LULU", "TJX", "AME", "ETN", "EMR", "ITW", "UNP", "UPS", "XPO",
+        "JBHT", "CHRW", "ODFL", "EXPD", "ROK", "DOV", "PH", "V", "MA", "SPGI",
+        "MSCI", "MCO", "FICO", "CDNS", "SNPS", "ANET", "CSCO", "NTAP", "VRSN",
+        "FFIV", "GLW", "TEL", "APH", "KEYS", "GRMN", "MSI", "EQIX", "WELL", "WM",
+        "RSG", "GWW", "FAST", "CARR", "OTIS", "TT", "PWR", "PPG", "SHW", "ECL",
+        "CL", "CLX", "HSY", "KMB", "MCK", "CIEN", "LLY", "MRK", "GILD", "VRTX",
+        "ALNY", "NBIX", "INCY", "DXCM", "IDXX", "ZBRA", "WST", "WAT", "BDX",
+        "EW", "A", "APD", "LIN", "XOM", "CVX", "SLB",
+        "ALB", "ALGN", "AOS", "APOG", "AR", "ARHS", "ARWR", "ASLE", "ASPN",
+        "AUDC", "AVNS", "AVO", "AWI", "AXSM", "AYI", "AZTA", "AZO", "BBY",
+        "BIO", "BIIB", "BIRK", "BKTI", "BLD", "BLDR",
+        "SPY", "QQQ",
     ]
 
     def __init__(self):
