@@ -33,10 +33,47 @@ class DataFetcher:
     def _get_cache(self, key: str):
         return self._cache.get(key)
 
+    # Rate limiter: 144 credits/min limit
+    # كل scan: 15 سهم × 3 timeframes = 45 طلب
+    # نوزعها على 60 ثانية = طلب كل 1.4 ثانية
+    _last_request_time = 0.0
+    _request_count = 0
+    _request_window_start = 0.0
+    _MIN_INTERVAL = 1.4  # ثانية بين كل طلب
+
+    async def _rate_limit(self):
+        """144 credits/min — طلب كل 1.4 ثانية"""
+        import time
+        now = time.time()
+
+        # إعادة تعيين العداد كل دقيقة
+        if now - self.__class__._request_window_start >= 60:
+            self.__class__._request_count = 0
+            self.__class__._request_window_start = now
+
+        # إذا اقتربنا من الحد (130) انتظر باقي الدقيقة
+        if self.__class__._request_count >= 130:
+            wait = 60 - (now - self.__class__._request_window_start)
+            if wait > 0:
+                logger.info(f"⏳ Rate limit pause: {wait:.1f}s")
+                await asyncio.sleep(wait)
+            self.__class__._request_count = 0
+            self.__class__._request_window_start = time.time()
+
+        # تأكد من مرور 1.4 ثانية بين كل طلب
+        elapsed = now - self.__class__._last_request_time
+        if elapsed < self._MIN_INTERVAL:
+            await asyncio.sleep(self._MIN_INTERVAL - elapsed)
+
+        self.__class__._last_request_time = time.time()
+        self.__class__._request_count += 1
+
     async def get_candles(self, symbol: str, interval: str, outputsize: int = 96) -> Optional[pd.DataFrame]:
         """Fetch OHLCV data from Twelve Data"""
         cache_key = f"candles_{symbol}_{interval}"
-        if self._is_cached(cache_key, ttl=60):
+        # Cache TTL: 15m=3min, 1h=10min, 1day=30min
+        ttl = {"15min": 180, "1h": 600, "1day": 1800}.get(interval, 180)
+        if self._is_cached(cache_key, ttl=ttl):
             return self._get_cache(cache_key)
 
         url = "https://api.twelvedata.com/time_series"
@@ -49,6 +86,7 @@ class DataFetcher:
         }
 
         try:
+            await self._rate_limit()  # Respect API limits
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     data = await resp.json()
