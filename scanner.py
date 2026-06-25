@@ -43,7 +43,7 @@ class StockScanner:
 
         # جلب SPY للسياق
         market = await self.fetcher.get_market_breadth()
-        logger.info(f"Market: SPY={market.get('spy_trend')} {market.get('spy_momentum',0):.2f}%")
+        logger.info(f"Market: QQQ={market.get('spy_trend')} {market.get('spy_momentum',0):.2f}%")
 
         # Quick score للدفعة الحالية — طلب واحد فقط لكل سهم (15m)
         scored = []
