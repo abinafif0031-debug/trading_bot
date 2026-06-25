@@ -279,7 +279,7 @@ class DataFetcher:
 
     async def get_market_breadth(self) -> dict:
         """Get SPY data as market breadth indicator"""
-        df = await self.get_candles("SPY", "1h", outputsize=24)
+        df = await self.get_candles("QQQ", "15min", outputsize=96)
         if df is None:
             return {"spy_trend": "unknown"}
         
