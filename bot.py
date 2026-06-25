@@ -174,20 +174,19 @@ class TradingBot:
         
         try:
             signal = await self.analyzer.analyze_single(text)
-            # Only track & show full signal if score is high enough
             if signal and not signal.get('no_signal') and signal['score'] >= self.config.MIN_SCORE:
+                # إشارة قوية — أرسلها فقط، لا تضيفها للـ tracker (الـ tracker للإشارات التلقائية فقط)
                 response = self._format_signal(signal, on_demand=True)
-                self.tracker.add_signal(signal)  # Track only valid signals
             elif signal:
                 score = signal.get('score', 0)
                 direction = '🟢 Leaning Long' if score > 50 else '🔴 Leaning Short'
                 response = (
-                    f"📊 *{text}* — No clear entry\n"
+                    f"📊 *{text}*\n"
                     f"Score: `{score}/100` | {direction}\n"
-                    f"Conditions not strong enough for entry."
+                    f"No strong entry signal now."
                 )
             else:
-                response = f"❌ Could not fetch data for `{text}`"
+                response = f"❌ No data for `{text}`"
             await msg.edit_text(response, parse_mode=ParseMode.MARKDOWN)
         except Exception as e:
             logger.error(f"Analysis error for {text}: {e}")
@@ -295,7 +294,12 @@ class TradingBot:
                     logger.info(f"Already tracking — skipping broadcast")
                     continue
                 msg = self._format_signal(signal)
-                await self._broadcast(msg)
+                sent = await self._broadcast(msg)
+                if sent:
+                    self.tracker.mark_notified(trade_id)  # فقط بعد إرسال ناجح
+                    logger.info(f"✅ Signal sent & tracked: {signal['symbol']}")
+                else:
+                    logger.warning(f"❌ Broadcast failed for {signal['symbol']} — not tracked")
                 await asyncio.sleep(1)  # Rate limit
             
             # Check existing positions for TP/SL hits
@@ -367,9 +371,13 @@ class TradingBot:
             except Exception as e:
                 logger.error(f"Position update error {pos.get('symbol')}: {e}")
 
-    async def _broadcast(self, message: str):
-        """Send message to all registered chats"""
+    async def _broadcast(self, message: str) -> bool:
+        """Send message to all registered chats — returns True if sent to at least one"""
         chats = self.config.get_chats()
+        if not chats:
+            logger.warning("No chats registered!")
+            return False
+        sent = False
         for chat_id in chats:
             try:
                 await self.app.bot.send_message(
@@ -377,8 +385,10 @@ class TradingBot:
                     text=message,
                     parse_mode=ParseMode.MARKDOWN
                 )
+                sent = True
             except Exception as e:
                 logger.error(f"Broadcast error to {chat_id}: {e}")
+        return sent
 
     async def scheduled_scan(self, context: ContextTypes.DEFAULT_TYPE):
         """Called by job queue periodically"""
