@@ -8,7 +8,6 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Dict
 
-
 logger = logging.getLogger(__name__)
 
 DB_FILE = "trades.db"
@@ -40,6 +39,7 @@ class TradeTracker:
                 pnl_pct     REAL,
                 tp1_hit     INTEGER DEFAULT 0,
                 status      TEXT DEFAULT 'open',
+                notified    INTEGER DEFAULT 0,
                 ai_comment  TEXT,
                 reasons     TEXT
             )
@@ -85,6 +85,14 @@ class TradeTracker:
         logger.info(f"📝 Tracked signal: {signal['symbol']} (id={trade_id})")
         return trade_id
 
+    def mark_notified(self, trade_id: int):
+        """Mark signal as actually notified to user"""
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("UPDATE trades SET notified=1 WHERE id=?", (trade_id,))
+        conn.commit()
+        conn.close()
+
     def mark_tp1(self, trade_id: int):
         """Mark TP1 as hit"""
         conn = sqlite3.connect(DB_FILE)
@@ -126,13 +134,13 @@ class TradeTracker:
         conn.close()
         logger.info(f"✅ Closed trade {trade_id}: {close_type} | P&L: {pnl:+.2f}%")
 
-    def get_open_positions(self) -> List[dict]:
-        """Get all open positions"""
+    def get_open_positions(self) -> List[Dict]:
+        """Get all open positions — only ones that were actually notified"""
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
         c.execute("""
             SELECT id, symbol, direction, entry, tp1, tp2, sl, entry_time, tp1_hit
-            FROM trades WHERE status='open'
+            FROM trades WHERE status='open' AND notified=1
             ORDER BY entry_time DESC
         """)
         rows = c.fetchall()
@@ -153,7 +161,7 @@ class TradeTracker:
             for row in rows
         ]
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> Dict:
         """Today's stats"""
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
@@ -188,7 +196,7 @@ class TradeTracker:
             "avg_profit":    avg_profit,
         }
 
-    def get_full_stats(self) -> dict:
+    def get_full_stats(self) -> Dict:
         """All-time stats"""
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
